@@ -8,37 +8,49 @@
         body {
             font-family: Arial, sans-serif;
             text-align: center;
-            padding: 50px;
+            background-color: white; /* Background color changed to white */
+            padding: 20px;
+        }
+        #container {
+            max-width: 400px; /* Reduced width for smaller size */
+            margin: 0 auto;
+            background-color: #f9f9f9;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
         }
         #recording-status {
             color: red;
-            font-size: 18px;
+            font-size: 14px; /* Smaller font size */
             font-weight: bold;
             display: none;
         }
         button {
-            font-size: 16px;
-            padding: 10px 20px;
-            margin: 10px;
+            font-size: 14px; /* Smaller button size */
+            padding: 5px 10px;
+            margin: 5px;
             cursor: pointer;
         }
         audio {
-            margin-top: 20px;
+            width: 100%;
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
 
-    <h1>Audio Recorder</h1>
-    <p>Click the button below to start recording.</p>
-    
-    <button id="recordButton">Start Recording</button>
-    <button id="stopButton" disabled>Stop Recording</button>
-    
-    <p id="recording-status">Recording...</p>
+    <div id="container">
+        <h2>Audio Recorder</h2>
+        <p>Click the button below to start recording.</p>
+        
+        <button id="recordButton">Start Recording</button>
+        <button id="stopButton" disabled>Stop Recording</button>
+        
+        <p id="recording-status">Recording...</p>
 
-    <h2>Recorded Audio Preview:</h2>
-    <audio id="audioPlayback" controls></audio>
+        <h3>Recorded Audio Preview:</h3>
+        <audio id="audioPlayback" controls></audio>
+    </div>
 
     <script>
         let mediaRecorder;
@@ -49,12 +61,19 @@
         const recordingStatus = document.getElementById('recording-status');
 
         recordButton.addEventListener('click', async () => {
-            // Check for microphone access
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
+            const audioConstraints = {
+                audio: {
+                    sampleRate: 48000,
+                    channelCount: 2,
+                    echoCancellation: false,
+                    noiseSuppression: false,
+                    autoGainControl: false,
+                }
+            };
 
-                // Check for supported MIME type
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia(audioConstraints);
+                
                 if (MediaRecorder.isTypeSupported('audio/webm')) {
                     mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
                 } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
@@ -64,11 +83,10 @@
                     return;
                 }
 
-                // Start recording
                 mediaRecorder.start();
-                recordingStatus.style.display = 'block'; // Show recording status
-                recordButton.disabled = true; // Disable record button
-                stopButton.disabled = false;  // Enable stop button
+                recordingStatus.style.display = 'block'; 
+                recordButton.disabled = true;
+                stopButton.disabled = false;
 
                 mediaRecorder.ondataavailable = (event) => {
                     if (event.data.size > 0) {
@@ -78,9 +96,9 @@
 
                 mediaRecorder.onstop = () => {
                     const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType });
-                    recordedChunks = []; // Clear recorded data
+                    recordedChunks = [];
                     const audioURL = URL.createObjectURL(blob);
-                    audioPlayback.src = audioURL; // Set audio source for playback
+                    audioPlayback.src = audioURL;
                 };
             } catch (error) {
                 alert('Microphone access denied or an error occurred');
@@ -89,11 +107,10 @@
         });
 
         stopButton.addEventListener('click', () => {
-            // Stop the recording
             mediaRecorder.stop();
-            recordingStatus.style.display = 'none'; // Hide recording status
-            recordButton.disabled = false; // Enable record button
-            stopButton.disabled = true;  // Disable stop button
+            recordingStatus.style.display = 'none';
+            recordButton.disabled = false;
+            stopButton.disabled = true;
         });
     </script>
 

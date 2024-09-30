@@ -4,26 +4,56 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Secure Audio Recorder</title>
+    <style>
+        body {
+            background-color: white;
+            color: black;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            margin: 0;
+        }
+        button, span {
+            margin: 5px;
+        }
+        #timer {
+            color: red;
+        }
+    </style>
 </head>
 <body>
     <h1>Audio Recorder</h1>
     <button id="recordButton">Start Recording</button>
     <button id="stopButton" disabled>Stop Recording</button>
     <audio controls></audio>
+    <span id="timer">00:00</span>
     <script>
         let mediaRecorder;
         let audioChunks = [];
         let audioElement = document.querySelector('audio');
+        let timerDisplay = document.getElementById('timer');
+        let recordTime = 0;
+        let timerInterval;
+
+        function updateTimer() {
+            recordTime++;
+            let seconds = recordTime % 60;
+            let minutes = Math.floor(recordTime / 60);
+            timerDisplay.textContent = `${(minutes < 10 ? "0" + minutes : minutes)}:${(seconds < 10 ? "0" + seconds : seconds)}`;
+        }
 
         document.getElementById('recordButton').addEventListener('click', function() {
             navigator.mediaDevices.getUserMedia({ audio: true })
                 .then(stream => {
-                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
                     mediaRecorder.ondataavailable = event => {
                         audioChunks.push(event.data);
                     };
                     mediaRecorder.onstop = () => {
-                        const audioBlob = new Blob(audioChunks);
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                         const audioUrl = URL.createObjectURL(audioBlob);
                         audioElement.src = audioUrl;
                         audioChunks = [];
@@ -31,6 +61,7 @@
                     mediaRecorder.start();
                     document.getElementById('recordButton').disabled = true;
                     document.getElementById('stopButton').disabled = false;
+                    timerInterval = setInterval(updateTimer, 1000);
                 })
                 .catch(error => {
                     console.error('Error accessing the microphone:', error);
@@ -40,6 +71,9 @@
 
         document.getElementById('stopButton').addEventListener('click', () => {
             mediaRecorder.stop();
+            clearInterval(timerInterval);
+            recordTime = 0;
+            timerDisplay.textContent = "00:00";
             document.getElementById('recordButton').disabled = false;
             document.getElementById('stopButton').disabled = true;
         });

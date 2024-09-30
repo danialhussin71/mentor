@@ -51,10 +51,25 @@
         function startRecording() {
             navigator.mediaDevices.getUserMedia({ audio: true })
                 .then(stream => {
-                    mediaRecorder = new MediaRecorder(stream);
+                    // Checking for the best MIME type available for recording
+                    let options = { mimeType: 'audio/webm; codecs=opus' };
+                    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                        console.log(options.mimeType + ' is not Supported');
+                        options = { mimeType: 'audio/webm' };
+                        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                            console.log(options.mimeType + ' is not Supported');
+                            options = { mimeType: 'audio/aac' };
+                            if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                                console.log(options.mimeType + ' is not Supported');
+                                options = { mimeType: '' }; // defaults to the browser's best supported type
+                            }
+                        }
+                    }
+
+                    mediaRecorder = new MediaRecorder(stream, options);
                     mediaRecorder.ondataavailable = (event) => audioChunks.push(event.data);
                     mediaRecorder.onstop = () => {
-                        const audioBlob = new Blob(audioChunks);
+                        const audioBlob = new Blob(audioChunks, { type: options.mimeType });
                         audioElement.src = URL.createObjectURL(audioBlob);
                         audioChunks = [];
                     };

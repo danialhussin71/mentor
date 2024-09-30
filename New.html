@@ -54,6 +54,16 @@
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 mediaRecorder = new MediaRecorder(stream);
 
+                // Check for supported MIME type
+                if (MediaRecorder.isTypeSupported('audio/webm')) {
+                    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+                } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+                    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/ogg; codecs=opus' });
+                } else {
+                    alert('Your browser does not support any available audio format for recording.');
+                    return;
+                }
+
                 // Start recording
                 mediaRecorder.start();
                 recordingStatus.style.display = 'block'; // Show recording status
@@ -67,7 +77,7 @@
                 };
 
                 mediaRecorder.onstop = () => {
-                    const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+                    const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType });
                     recordedChunks = []; // Clear recorded data
                     const audioURL = URL.createObjectURL(blob);
                     audioPlayback.src = audioURL; // Set audio source for playback

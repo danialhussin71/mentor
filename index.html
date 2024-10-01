@@ -1,18 +1,22 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
-    <title>Simple Recorder.js Demo</title>
+    <title>Simple Recorder.js Demo with Record, Stop, and Pause</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
-<div id="controls">
-    <button id="recordButton">Record</button>
-    <button id="pauseButton" disabled>Pause</button>
-    <button id="stopButton" disabled>Stop</button>
-</div>
-<h3>Recordings</h3>
-<ol id="recordingsList"></ol>
-<script src="https://yourproject.surge.sh/recorder.js"></script>
-<script src="https://yourproject.surge.sh/app.js"></script>
+    <div id="controls">
+        <button id="recordButton">Record</button>
+        <button id="pauseButton" disabled>Pause</button>
+        <button id="stopButton" disabled>Stop</button>
+    </div>
+    <h3>Recordings</h3>
+    <ol id="recordingsList"></ol>
+
+    <!-- Include Recorder.js from Surge CDN -->
+    <script src="https://your-surge-domain.surge.sh/recorder.js"></script>
+    <!-- Include the app script -->
+    <script src="js/app.js"></script>
 </body>
 </html>

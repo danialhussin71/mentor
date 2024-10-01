@@ -1,112 +1,118 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Audio Recorder</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 20px;
-    }
-    button {
-      margin: 10px;
-      padding: 10px 20px;
-      font-size: 16px;
-    }
-    audio {
-      display: none;
-      margin-top: 20px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Recorder</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: white; /* Background color changed to white */
+            padding: 20px;
+        }
+        #container {
+            max-width: 400px; /* Reduced width for smaller size */
+            margin: 0 auto;
+            background-color: #f9f9f9;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+        }
+        #recording-status {
+            color: red;
+            font-size: 14px; /* Smaller font size */
+            font-weight: bold;
+            display: none;
+        }
+        button {
+            font-size: 14px; /* Smaller button size */
+            padding: 5px 10px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        audio {
+            width: 100%;
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
 
-  <h2>Audio Recorder</h2>
-  <p>The iframe listens for recording commands from the parent page.</p>
-  <audio id="audioPlayer" controls></audio>
+    <div id="container">
+        <h2>Audio Recorder</h2>
+        <p>Click the button below to start recording.</p>
+        
+        <button id="recordButton">Start Recording</button>
+        <button id="stopButton" disabled>Stop Recording</button>
+        
+        <p id="recording-status">Recording...</p>
 
-  <script>
-    let mediaRecorder;
-    let recordedBlobs = [];
-    let isRecording = false;
+        <h3>Recorded Audio Preview:</h3>
+        <audio id="audioPlayback" controls></audio>
+    </div>
 
-    // Function to start recording
-    function startRecording() {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('getUserMedia() is not supported by your browser.');
-        return;
-      }
+    <script>
+        let mediaRecorder;
+        let recordedChunks = [];
+        const recordButton = document.getElementById('recordButton');
+        const stopButton = document.getElementById('stopButton');
+        const audioPlayback = document.getElementById('audioPlayback');
+        const recordingStatus = document.getElementById('recording-status');
 
-      navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(stream => {
-          recordedBlobs = [];
-          mediaRecorder = new MediaRecorder(stream);
+        recordButton.addEventListener('click', async () => {
+            const audioConstraints = {
+                audio: {
+                    sampleRate: 48000,
+                    channelCount: 2,
+                    echoCancellation: false,
+                    noiseSuppression: false,
+                    autoGainControl: false,
+                }
+            };
 
-          mediaRecorder.ondataavailable = (event) => {
-            if (event.data && event.data.size > 0) {
-              recordedBlobs.push(event.data);
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia(audioConstraints);
+                
+                if (MediaRecorder.isTypeSupported('audio/webm')) {
+                    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+                } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+                    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/ogg; codecs=opus' });
+                } else {
+                    alert('Your browser does not support any available audio format for recording.');
+                    return;
+                }
+
+                mediaRecorder.start();
+                recordingStatus.style.display = 'block'; 
+                recordButton.disabled = true;
+                stopButton.disabled = false;
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType });
+                    recordedChunks = [];
+                    const audioURL = URL.createObjectURL(blob);
+                    audioPlayback.src = audioURL;
+                };
+            } catch (error) {
+                alert('Microphone access denied or an error occurred');
+                console.error(error);
             }
-          };
-
-          mediaRecorder.start();
-          isRecording = true;
-          console.log('Recording started');
-        })
-        .catch(err => {
-          console.error('Error accessing microphone:', err);
-          alert('Error accessing your microphone. Please ensure your browser has permission.');
         });
-    }
 
-    // Function to stop recording
-    function stopRecording() {
-      if (mediaRecorder && isRecording) {
-        mediaRecorder.stop();
-        isRecording = false;
-        console.log('Recording stopped');
-      }
-    }
-
-    // Function to play the recorded audio
-    function playRecording() {
-      if (recordedBlobs.length > 0) {
-        const superBuffer = new Blob(recordedBlobs, { type: 'audio/webm' });
-        const audioURL = window.URL.createObjectURL(superBuffer);
-        const audioPlayer = document.getElementById('audioPlayer');
-        audioPlayer.src = audioURL;
-        audioPlayer.style.display = 'block';
-        console.log('Playing recorded audio');
-      } else {
-        alert('No audio recorded yet.');
-      }
-    }
-
-    // Listen for messages from the parent (Wix site)
-    window.addEventListener('message', (event) => {
-      // Validate origin - replace with your Wix site's domain
-      if (event.origin !== "https://your-wix-site-url.com") {
-        console.error('Invalid origin:', event.origin);
-        return;
-      }
-
-      // Act on the received message
-      switch (event.data) {
-        case 'startRecording':
-          startRecording();
-          break;
-        case 'stopRecording':
-          stopRecording();
-          break;
-        case 'playRecording':
-          playRecording();
-          break;
-        default:
-          console.error('Unknown message:', event.data);
-      }
-    }, false);
-  </script>
+        stopButton.addEventListener('click', () => {
+            mediaRecorder.stop();
+            recordingStatus.style.display = 'none';
+            recordButton.disabled = false;
+            stopButton.disabled = true;
+        });
+    </script>
 
 </body>
 </html>

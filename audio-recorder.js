@@ -1,63 +1,73 @@
-// audio-recorder.js
-
-document.addEventListener('DOMContentLoaded', function() {
-    let mediaRecorder;
-    let recordedChunks = [];
-    const recordButton = document.getElementById('recordButton');
-    const stopButton = document.getElementById('stopButton');
-    const audioPlayback = document.getElementById('audioPlayback');
-    const recordingStatus = document.getElementById('recording-status');
-
-    recordButton.addEventListener('click', async () => {
-        const audioConstraints = {
-            audio: {
-                sampleRate: 48000,
-                channelCount: 2,
-                echoCancellation: false,
-                noiseSuppression: false,
-                autoGainControl: false,
-            }
-        };
-
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia(audioConstraints);
-
-            if (MediaRecorder.isTypeSupported('audio/webm')) {
-                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-            } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
-                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/ogg; codecs=opus' });
-            } else {
-                alert('Your browser does not support any available audio format for recording.');
-                return;
-            }
-
-            mediaRecorder.start();
-            recordingStatus.style.display = 'block';
-            recordButton.disabled = true;
-            stopButton.disabled = false;
-
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    recordedChunks.push(event.data);
+class AudioRecorder extends HTMLElement {
+    constructor() {
+        super();
+        this.attachShadow({ mode: 'open' }); // Use shadow DOM to encapsulate styles.
+        this.shadowRoot.innerHTML = `
+            <style>
+                :host {
+                    display: block;
+                    border: 1px solid #ccc;
+                    padding: 10px;
+                    text-align: center;
+                    background-color: #f8f8f8;
                 }
-            };
+                button {
+                    margin: 10px;
+                    padding: 5px 10px;
+                    font-size: 16px;
+                }
+            </style>
+            <div>
+                <button id="recordButton">Start Recording</button>
+                <button id="stopButton" disabled>Stop Recording</button>
+                <p id="status">Not Recording</p>
+            </div>
+            <audio controls hidden></audio>
+        `;
 
-            mediaRecorder.onstop = () => {
-                const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType });
-                recordedChunks = [];
-                const audioURL = URL.createObjectURL(blob);
-                audioPlayback.src = audioURL;
-            };
+        // Define DOM elements
+        this.recordButton = this.shadowRoot.querySelector('#recordButton');
+        this.stopButton = this.shadowRoot.querySelector('#stopButton');
+        this.status = this.shadowRoot.querySelector('#status');
+        this.audio = this.shadowRoot.querySelector('audio');
+
+        // MediaRecorder instance
+        this.mediaRecorder = null;
+        this.audioChunks = [];
+
+        // Bind event handlers
+        this.recordButton.addEventListener('click', () => this.startRecording());
+        this.stopButton.addEventListener('click', () => this.stopRecording());
+    }
+
+    async startRecording() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            this.mediaRecorder = new MediaRecorder(stream);
+            this.mediaRecorder.start();
+            this.recordButton.disabled = true;
+            this.stopButton.disabled = false;
+            this.status.textContent = 'Recording...';
+            this.mediaRecorder.ondataavailable = e => this.audioChunks.push(e.data);
+            this.mediaRecorder.onstop = () => this.handleRecordingStop();
         } catch (error) {
-            alert('Microphone access denied or an error occurred');
-            console.error(error);
+            console.error('Error accessing the microphone:', error);
         }
-    });
+    }
 
-    stopButton.addEventListener('click', () => {
-        mediaRecorder.stop();
-        recordingStatus.style.display = 'none';
-        recordButton.disabled = false;
-        stopButton.disabled = true;
-    });
-});
+    stopRecording() {
+        this.mediaRecorder.stop();
+        this.recordButton.disabled = false;
+        this.stopButton.disabled = true;
+        this.status.textContent = 'Not Recording';
+    }
+
+    handleRecordingStop() {
+        const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+        this.audio.src = URL.createObjectURL(audioBlob);
+        this.audio.hidden = false;
+        this.audioChunks = [];
+    }
+}
+
+customElements.define('audio-recorder', AudioRecorder);

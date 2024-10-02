@@ -48,6 +48,7 @@ class AudioRecorder extends HTMLElement {
 
     recordButton.addEventListener('click', async () => {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Specify the correct MIME type for the MediaRecorder
       mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/mp4' });
 
       mediaRecorder.start();
@@ -61,6 +62,7 @@ class AudioRecorder extends HTMLElement {
       };
 
       mediaRecorder.onstop = () => {
+        // Ensure the Blob is also specified with the correct MIME type
         const blob = new Blob(chunks, { type: 'audio/mp4' });
         chunks = [];
         audioPlayback.src = URL.createObjectURL(blob);
@@ -86,4 +88,4 @@ class AudioRecorder extends HTMLElement {
   }
 }
 
-customElements.define('audio-recorder1', AudioRecorder);
+customElements.define('audio-recorder', AudioRecorder);

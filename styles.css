@@ -1,0 +1,30 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background-color: white; /* Background color changed to white */
+    padding: 20px;
+}
+#container {
+    max-width: 400px; /* Reduced width for smaller size */
+    margin: 0 auto;
+    background-color: #f9f9f9;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+}
+#recording-status {
+    color: red;
+    font-size: 14px; /* Smaller font size */
+    font-weight: bold;
+    display: none;
+}
+button {
+    font-size: 14px; /* Smaller button size */
+    padding: 5px 10px;
+    margin: 5px;
+    cursor: pointer;
+}
+audio {
+    width: 100%;
+    margin-top: 10px;
+}

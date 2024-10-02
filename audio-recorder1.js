@@ -7,33 +7,33 @@ class AudioRecorder extends HTMLElement {
     const container = document.createElement('div');
     const recordButton = document.createElement('button');
     const stopButton = document.createElement('button');
-    const submitButton = document.createElement('button'); // Dummy for future implementation
+    const submitButton = document.createElement('button');
     const audioPlayback = document.createElement('audio');
     const discardButton = document.createElement('button');
 
     // Set element properties
     recordButton.textContent = 'Start';
     stopButton.textContent = 'Stop';
-    stopButton.disabled = true;
     submitButton.textContent = 'Submit';
-    submitButton.style.display = 'none'; // Initially hidden
     discardButton.textContent = 'Discard';
-    discardButton.style.display = 'none'; // Initially hidden
+    stopButton.disabled = true;
+    submitButton.style.display = 'none';
+    discardButton.style.display = 'none';
     audioPlayback.controls = true;
-    audioPlayback.style.display = 'none'; // Initially hidden
+    audioPlayback.style.display = 'none';
 
-    // Style adjustments for sleek look
+    // Style adjustments for a sleek look
     container.style.display = 'flex';
     container.style.justifyContent = 'center';
     container.style.alignItems = 'center';
     container.style.gap = '10px';
-    const buttonStyle = 'padding: 5px 10px; font-size: 14px; margin: 0 5px;';
+    const buttonStyle = 'padding: 5px 10px; font-size: 14px;';
     recordButton.style.cssText = buttonStyle;
     stopButton.style.cssText = buttonStyle;
     submitButton.style.cssText = buttonStyle;
     discardButton.style.cssText = buttonStyle;
 
-    // Append elements
+    // Append elements to the container
     container.appendChild(recordButton);
     container.appendChild(stopButton);
     container.appendChild(submitButton);
@@ -48,14 +48,11 @@ class AudioRecorder extends HTMLElement {
 
     recordButton.addEventListener('click', async () => {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/mp4' });
 
       mediaRecorder.start();
       recordButton.disabled = true;
       stopButton.disabled = false;
-      submitButton.style.display = 'none';
-      discardButton.style.display = 'none';
-      audioPlayback.style.display = 'none';
 
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
@@ -63,8 +60,8 @@ class AudioRecorder extends HTMLElement {
         }
       };
 
-      mediaRecorder.onstop = async () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'audio/mp4' });
         chunks = [];
         audioPlayback.src = URL.createObjectURL(blob);
         audioPlayback.style.display = 'block';

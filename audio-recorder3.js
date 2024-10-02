@@ -20,25 +20,45 @@ class AudioRecorder extends HTMLElement {
     audioPlayback.controls = true;
     audioPlayback.style.display = 'none';
 
-    container.append(recordButton, stopButton, submitButton, audioPlayback, discardButton);
-    this.shadowRoot.append(container);
+    container.style.display = 'flex';
+    container.style.justifyContent = 'center';
+    container.style.alignItems = 'center';
+    container.style.gap = '10px';
+    const buttonStyle = 'padding: 5px 10px; font-size: 14px;';
+    recordButton.style.cssText = buttonStyle;
+    stopButton.style.cssText = buttonStyle;
+    submitButton.style.cssText = buttonStyle;
+    discardButton.style.cssText = buttonStyle;
+
+    container.appendChild(recordButton);
+    container.appendChild(stopButton);
+    container.appendChild(submitButton);
+    container.appendChild(audioPlayback);
+    container.appendChild(discardButton);
+    this.shadowRoot.appendChild(container);
 
     let mediaRecorder;
-    let audioBlob;
+    let chunks = [];
+    let stream;
 
     recordButton.addEventListener('click', async () => {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-      const chunks = [];
-      mediaRecorder.start();
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/mp4' });
 
+      mediaRecorder.start();
       recordButton.disabled = true;
       stopButton.disabled = false;
 
-      mediaRecorder.ondataavailable = e => chunks.push(e.data);
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunks.push(e.data);
+        }
+      };
+
       mediaRecorder.onstop = () => {
-        audioBlob = new Blob(chunks, { type: 'audio/webm' });
-        audioPlayback.src = URL.createObjectURL(audioBlob);
+        const blob = new Blob(chunks, { type: 'audio/mp4' });
+        chunks = [];
+        audioPlayback.src = URL.createObjectURL(blob);
         audioPlayback.style.display = 'block';
         submitButton.style.display = 'block';
         discardButton.style.display = 'block';
@@ -48,46 +68,32 @@ class AudioRecorder extends HTMLElement {
       };
     });
 
-    stopButton.addEventListener('click', () => mediaRecorder.stop());
+    stopButton.addEventListener('click', () => {
+      mediaRecorder.stop();
+    });
 
     discardButton.addEventListener('click', () => {
       audioPlayback.src = '';
       submitButton.style.display = 'none';
       discardButton.style.display = 'none';
       audioPlayback.style.display = 'none';
-      audioBlob = null;
     });
 
     submitButton.addEventListener('click', () => {
-      const formData = new FormData();
-      formData.append('file', audioBlob, 'audiofile.webm');
-      formData.append('upload_preset', 'MentorAi');
+      audioPlayback.captureStream().getTracks().forEach(track => {
+        track.stop();  // Ensure we stop the audio playback track to release resources
+      });
 
-      fetch(`https://api.cloudinary.com/v1_1/deyflef5j/auto/upload`, {
+      const formData = new FormData();
+      formData.append('file', audioPlayback.src); // This needs to be the blob directly
+      fetch('https://hooks.zapier.com/hooks/catch/17969384/2dvld0t/', {
         method: 'POST',
         body: formData
       })
       .then(response => response.json())
-      .then(data => {
-        console.log('Cloudinary upload success:', data);
-        alert('File uploaded successfully!');
-        sendFileUrlToZapier(data.secure_url);
-      })
-      .catch(err => console.error('Cloudinary upload error:', err));
+      .then(data => console.log('Success:', data))
+      .catch(error => console.error('Error:', error));
     });
-
-    function sendFileUrlToZapier(fileUrl) {
-      fetch('https://hooks.zapier.com/hooks/catch/17969384/2dvld0t/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ fileUrl })
-      })
-      .then(response => response.json())
-      .then(data => console.log('Zapier webhook success:', data))
-      .catch(error => console.error('Zapier webhook error:', error));
-    }
   }
 }
 

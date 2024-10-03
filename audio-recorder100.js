@@ -39,8 +39,8 @@ class AudioRecorder extends HTMLElement {
           opacity: 0.8;
         }
         .icon {
-          width: 40px; /* 20% larger */
-          height: 40px; /* 20% larger */
+          width: 60px; /* 20% larger */
+          height: 60px; /* 20% larger */
         }
         #timer {
           font-size: 16px;

@@ -301,7 +301,7 @@ class AudioRecorder extends HTMLElement {
       formData.append('file', blob, filename);
 
       // Replace 'https://your-wix-site.com' with your actual Wix site domain
-      const wixUploadUrl = 'https://your-wix-site.com/_functions/uploadAudio';
+      const wixUploadUrl = 'https://www.thementorprogram.xyz/_functions/post_uploadAudio';
 
       // Call the backend function to upload the file
       const response = await fetch(wixUploadUrl, {

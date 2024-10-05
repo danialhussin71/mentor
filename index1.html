@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>API Test</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+    <button id="executeButton">Execute</button>
+    <pre id="output"></pre>
+
+    <script>
+        document.getElementById('executeButton').addEventListener('click', function() {
+            fetch('https://www.thementorprogram.xyz/_functions/getUserId')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+                })
+                .catch(error => {
+                    document.getElementById('output').textContent = 'Error: ' + error.message;
+                });
+        });
+    </script>
+</body>
+</html>

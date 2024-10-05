@@ -1,3 +1,5 @@
+// audio-recorder.js
+
 class AudioRecorder extends HTMLElement {
   constructor() {
     super();
@@ -7,66 +9,122 @@ class AudioRecorder extends HTMLElement {
     const template = document.createElement('template');
     template.innerHTML = `
       <style>
-        .audio-recorder {
+        /* Container split into two equal parts */
+        .container {
+          display: flex;
+          flex-direction: row;
+          width: 100%;
+          max-width: 1920px;
+          margin: 20px auto;
+          padding: 20px;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+          border-radius: 8px;
+          background-color: #1e1e1e; /* Dark background for contrast */
+          color: white;
+          box-sizing: border-box;
+        }
+
+        /* Left section for Title and Links */
+        .left {
+          width: 50%;
+          padding-right: 20px;
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .left h2 {
+          margin: 0 0 5px 0;
+          font-size: 24px;
+        }
+
+        .input-group {
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+        }
+
+        .input-group input {
+          padding: 8px 12px;
+          font-size: 16px;
+          border: 1px solid #555;
+          border-radius: 4px;
+          background-color: #2c2c2c;
+          color: white;
+        }
+
+        /* Right section for Recorder */
+        .right {
+          width: 50%;
+          padding-left: 20px;
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          gap: 15px;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+        }
+
+        /* Record Text */
+        .record-text {
+          font-size: 24px;
+          margin-bottom: 10px;
+          text-align: center;
+        }
+
+        /* Audio Recorder Controls */
+        .audio-recorder-controls {
           display: flex;
           align-items: center;
-          justify-content: space-between;
-          padding: 10px;
-          border-radius: 8px;
-          background-color: transparent;
-          color: white;
-          width: 100%;
-          max-width: 960px; /* Adjusted to fill half of a 1920px screen */
-          margin: 20px auto;
-          box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+          gap: 15px;
         }
-        button, .timer-container {
+
+        button {
           background-color: transparent;
           color: white;
           border: none;
-          padding: 8px 16px;
+          padding: 10px;
           border-radius: 5px;
           font-size: 16px;
           cursor: pointer;
           display: flex;
           align-items: center;
+          transition: background-color 0.3s;
         }
+
         button:disabled {
           color: gray;
-          cursor: default;
+          cursor: not-allowed;
         }
+
         button:hover:not(:disabled) {
-          opacity: 0.8;
+          background-color: rgba(255, 255, 255, 0.1);
         }
+
         .icon {
           width: 28.8px; /* 20% larger */
           height: 28.8px; /* 20% larger */
+          margin-right: 5px;
         }
+
+        /* Timer */
         #timer {
           font-size: 16px;
           color: #FF5252; /* Red color for recording indicator */
           display: none;
-        }
-        #submitButton {
-          background-color: #4CAF50; /* Green background */
-          color: white; /* Text color */
-          display: none; /* Hidden initially */
-        }
-        #discardButton, #stopButton {
-          display: inline-flex; /* Make stop button visible but disabled initially */
-        }
-        .timer-container {
-          flex-grow: 1; /* Takes up all available space */
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-        }
-        #audioPlayback {
-          width: 100%;
           margin-top: 10px;
+        }
+
+        /* WaveSurfer Container */
+        #waveform {
+          width: 100%;
+          height: 80px;
           display: none;
         }
+
+        /* Message Styling */
         .message {
           width: 100%;
           text-align: center;
@@ -74,37 +132,69 @@ class AudioRecorder extends HTMLElement {
           font-size: 14px;
           display: none;
         }
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-          .audio-recorder {
+
+        /* Submit Button */
+        #submitButton {
+          display: none;
+          align-items: center;
+        }
+
+        /* Discard Button */
+        #discardButton {
+          display: none;
+          align-items: center;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 1200px) {
+          .container {
             flex-direction: column;
           }
-          .timer-container {
+          .left, .right {
             width: 100%;
-            margin-top: 10px;
+            padding: 0;
           }
-          #audioPlayback {
-            width: 100%;
+          .right {
+            padding-top: 20px;
+          }
+          #waveform {
+            height: 60px;
           }
         }
       </style>
-      <div class="audio-recorder">
-        <button id="recordButton" title="Start Recording">
-          <img class="icon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23FF5252'%3E%3Cpath d='M12 15c1.66 0 3-1.34 3-3V6c0-1.66-1.34-3-3-3S9 4.34 9 6v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H4v6h16v-6h-3zm3-13h-4v2h4v4h2V4h4V2h-4V0h-2v2z'/%3E%3C/svg%3E">
-        </button>
-        <button id="stopButton" disabled title="Stop Recording">
-          <img class="icon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23B0BEC5'%3E%3Cpath d='M6 6h12v12H6z'/%3E%3C/svg%3E">
-        </button>
-        <div class="timer-container">
-          <span id="timer">00:00</span>
-          <audio id="audioPlayback" controls></audio>
+      <div class="container">
+        <!-- Left Section -->
+        <div class="left">
+          <div class="input-group">
+            <h2>Title</h2>
+            <input type="text" id="titleInput" placeholder="Enter title here">
+          </div>
+          <div class="input-group">
+            <h2>Links</h2>
+            <input type="text" id="linksInput" placeholder="Enter links here">
+          </div>
         </div>
-        <button id="discardButton" title="Discard Recording">
-          <img class="icon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23FFC107'%3E%3Cpath d='M16 9v10H8V9h8m-1.5-6L12 2 9.5 3H5v2h14V3h-4.5zM7 9v10a2 2 0 002 2h6a2 2 0 002-2V9a2 2 0 00-2-2H9a2 2 0 00-2 2z'/%3E%3C/svg%3E">
-        </button>
-        <button id="submitButton" title="Submit Recording">
-          <img class="icon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M9 16.17L4.83 12 3.41 13.41 9 19l11-11-1.41-1.41z'/%3E%3C/svg%3E"> Submit
-        </button>
+
+        <!-- Right Section -->
+        <div class="right">
+          <div class="record-text" id="recordText">Record</div>
+          <div class="audio-recorder-controls">
+            <button id="recordButton" title="Start Recording">
+              <img class="icon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23FF5252'%3E%3Cpath d='M12 15c1.66 0 3-1.34 3-3V6c0-1.66-1.34-3-3-3S9 4.34 9 6v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H4v6h16v-6h-3zm3-13h-4v2h4v4h2V4h4V2h-4V0h-2v2z'/%3E%3C/svg%3E">
+            </button>
+            <button id="stopButton" disabled title="Stop Recording">
+              <img class="icon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23B0BEC5'%3E%3Cpath d='M6 6h12v12H6z'/%3E%3C/svg%3E">
+            </button>
+            <button id="discardButton" title="Discard Recording">
+              <img class="icon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23FFC107'%3E%3Cpath d='M16 9v10H8V9h8m-1.5-6L12 2 9.5 3H5v2h14V3h-4.5zM7 9v10a2 2 0 002 2h6a2 2 0 002-2V9a2 2 0 00-2-2H9a2 2 0 00-2 2z'/%3E%3C/svg%3E">
+            </button>
+            <button id="submitButton" title="Submit Recording">
+              <img class="icon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M9 16.17L4.83 12 3.41 13.41 9 19l11-11-1.41-1.41z'/%3E%3C/svg%3E"> Submit
+            </button>
+          </div>
+          <span id="timer">00:00</span>
+          <div id="waveform"></div>
+        </div>
       </div>
       <div class="message" id="message"></div>
     `;
@@ -118,14 +208,11 @@ class AudioRecorder extends HTMLElement {
     this.discardButton = this.shadowRoot.getElementById('discardButton');
     this.submitButton = this.shadowRoot.getElementById('submitButton');
     this.timerElement = this.shadowRoot.getElementById('timer');
-    this.audioPlayback = this.shadowRoot.getElementById('audioPlayback');
+    this.waveformContainer = this.shadowRoot.getElementById('waveform');
     this.messageDiv = this.shadowRoot.getElementById('message');
-
-    // Set up event listeners
-    this.recordButton.addEventListener('click', this.startRecording.bind(this));
-    this.stopButton.addEventListener('click', this.stopRecording.bind(this));
-    this.discardButton.addEventListener('click', this.discardRecording.bind(this));
-    this.submitButton.addEventListener('click', this.submitRecording.bind(this));
+    this.recordText = this.shadowRoot.getElementById('recordText');
+    this.titleInput = this.shadowRoot.getElementById('titleInput');
+    this.linksInput = this.shadowRoot.getElementById('linksInput');
 
     // Initialize variables
     this.mediaRecorder = null;
@@ -136,65 +223,146 @@ class AudioRecorder extends HTMLElement {
     this.wavBlob = null;
     this.seconds = 0;
     this.interval = null;
+    this.waveSurfer = null;
 
-    // Hide or show elements as needed
-    this.stopButton.disabled = true;
-    this.submitButton.style.display = 'none';
-    this.discardButton.style.display = 'none';
-    this.timerElement.style.display = 'none';
-    this.messageDiv.style.display = 'none';
+    // Bind methods
+    this.startRecording = this.startRecording.bind(this);
+    this.stopRecording = this.stopRecording.bind(this);
+    this.discardRecording = this.discardRecording.bind(this);
+    this.submitRecording = this.submitRecording.bind(this);
+    this.showMessage = this.showMessage.bind(this);
   }
 
-  startRecording() {
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(stream => {
-        this.stream = stream;
-        this.mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/mp4' });
-        this.mediaRecorder.start();
-        this.recordButton.disabled = true;
-        this.stopButton.disabled = false;
-        this.timerElement.style.display = 'inline';
-        this.seconds = 0;
-        this.timerElement.textContent = '00:00';
-        this.interval = setInterval(() => {
-          this.seconds++;
-          this.timerElement.textContent = new Date(this.seconds * 1000).toISOString().substr(14, 5);
-        }, 1000);
-
-        this.chunks = [];
-        this.mediaRecorder.ondataavailable = e => {
-          if (e.data.size > 0) {
-            this.chunks.push(e.data);
-          }
-        };
-        this.mediaRecorder.onstop = () => {
-          this.blob = new Blob(this.chunks, { type: 'audio/mp4' });
-          this.chunks = [];
-
-          // Convert to WAV
-          this.convertToWav(this.blob).then(wavBlob => {
-            this.wavBlob = wavBlob;
-            this.audioPlayback.src = URL.createObjectURL(this.wavBlob);
-            this.audioPlayback.style.display = 'block';
-          }).catch(error => {
-            console.error('Error during processing:', error);
-            this.showMessage('An error occurred while processing the audio.', 'red');
-          });
-
-          this.submitButton.style.display = 'inline-flex';
-          this.discardButton.style.display = 'inline-flex';
-          this.recordButton.style.display = 'none';
-          this.stopButton.disabled = true;
-          clearInterval(this.interval);
-          this.stream.getTracks().forEach(track => track.stop());
-        };
+  connectedCallback() {
+    // Load WaveSurfer.js
+    this.loadWaveSurfer()
+      .then(() => {
+        this.initializeWaveSurfer();
       })
       .catch(error => {
-        console.error('Error accessing microphone:', error);
-        this.showMessage('Error accessing microphone. Please check your device settings.', 'red');
+        console.error('Failed to load WaveSurfer.js:', error);
+        this.showMessage('Failed to load audio waveform.', 'red');
       });
+
+    // Set up event listeners
+    this.recordButton.addEventListener('click', this.startRecording);
+    this.stopButton.addEventListener('click', this.stopRecording);
+    this.discardButton.addEventListener('click', this.discardRecording);
+    this.submitButton.addEventListener('click', this.submitRecording);
   }
 
+  disconnectedCallback() {
+    // Clean up event listeners
+    this.recordButton.removeEventListener('click', this.startRecording);
+    this.stopButton.removeEventListener('click', this.stopRecording);
+    this.discardButton.removeEventListener('click', this.discardRecording);
+    this.submitButton.removeEventListener('click', this.submitRecording);
+
+    // Stop any ongoing recordings
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      this.mediaRecorder.stop();
+    }
+
+    // Clear intervals
+    clearInterval(this.interval);
+  }
+
+  // Method to load WaveSurfer.js dynamically
+  loadWaveSurfer() {
+    return new Promise((resolve, reject) => {
+      if (window.WaveSurfer) {
+        resolve();
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/wavesurfer.js';
+      script.onload = () => {
+        resolve();
+      };
+      script.onerror = () => {
+        reject(new Error('WaveSurfer.js failed to load.'));
+      };
+      document.head.appendChild(script);
+    });
+  }
+
+  // Initialize WaveSurfer
+  initializeWaveSurfer() {
+    this.waveSurfer = WaveSurfer.create({
+      container: this.waveformContainer,
+      waveColor: '#555',
+      progressColor: '#FF5252',
+      cursorColor: '#FF5252',
+      height: 80,
+      responsive: true,
+      normalize: true,
+      partialRender: true
+    });
+  }
+
+  // Start Recording
+  async startRecording() {
+    try {
+      this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.mediaRecorder = new MediaRecorder(this.stream, { mimeType: 'audio/webm' });
+
+      this.mediaRecorder.start();
+      this.recordButton.disabled = true;
+      this.stopButton.disabled = false;
+      this.discardButton.style.display = 'none';
+      this.submitButton.style.display = 'none';
+      this.timerElement.style.display = 'block';
+      this.waveformContainer.style.display = 'none';
+      this.recordText.style.display = 'none';
+
+      this.seconds = 0;
+      this.timerElement.textContent = '00:00';
+      this.interval = setInterval(() => {
+        this.seconds++;
+        this.timerElement.textContent = new Date(this.seconds * 1000).toISOString().substr(14, 5);
+      }, 1000);
+
+      this.chunks = [];
+      this.mediaRecorder.ondataavailable = e => {
+        if (e.data.size > 0) {
+          this.chunks.push(e.data);
+        }
+      };
+
+      this.mediaRecorder.onstop = async () => {
+        clearInterval(this.interval);
+        this.timerElement.style.display = 'none';
+        this.stopButton.disabled = true;
+        this.recordButton.disabled = false;
+
+        this.blob = new Blob(this.chunks, { type: 'audio/webm' });
+        this.chunks = [];
+
+        // Convert to WAV
+        try {
+          this.wavBlob = await this.convertToWav(this.blob);
+          const audioURL = URL.createObjectURL(this.wavBlob);
+          this.waveSurfer.load(audioURL);
+          this.waveformContainer.style.display = 'block';
+        } catch (error) {
+          console.error('Error during processing:', error);
+          this.showMessage('An error occurred while processing the audio.', 'red');
+        }
+
+        this.submitButton.style.display = 'inline-flex';
+        this.discardButton.style.display = 'inline-flex';
+        this.recordText.style.display = 'block';
+
+        // Stop all tracks
+        this.stream.getTracks().forEach(track => track.stop());
+      };
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      this.showMessage('Error accessing microphone. Please check your device settings.', 'red');
+    }
+  }
+
+  // Stop Recording
   stopRecording() {
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       this.mediaRecorder.stop();
@@ -203,6 +371,7 @@ class AudioRecorder extends HTMLElement {
     this.stopButton.disabled = true;
   }
 
+  // Discard Recording
   discardRecording() {
     this.seconds = 0;
     clearInterval(this.interval);
@@ -211,64 +380,77 @@ class AudioRecorder extends HTMLElement {
     this.discardButton.style.display = 'none';
     this.submitButton.style.display = 'none';
     this.recordButton.disabled = false;
-    this.recordButton.style.display = 'inline-flex';
-    this.audioPlayback.src = '';
-    this.audioPlayback.style.display = 'none';
+    this.waveSurfer.empty();
+    this.waveformContainer.style.display = 'none';
     this.wavBlob = null;
     this.showMessage('Recording discarded.', 'yellow');
+    this.recordText.style.display = 'block';
   }
 
-  submitRecording() {
+  // Submit Recording
+  async submitRecording() {
     if (!this.wavBlob) {
       this.showMessage('No recording to submit.', 'red');
       return;
     }
 
-    // Stop audio playback to release resources
-    this.audioPlayback.pause();
-    this.audioPlayback.currentTime = 0;
+    // Retrieve Title and Links
+    const title = this.titleInput.value.trim();
+    const links = this.linksInput.value.trim();
+
+    if (!title) {
+      this.showMessage('Please enter a title.', 'red');
+      return;
+    }
+
+    // Stop WaveSurfer to release resources
+    if (this.waveSurfer) {
+      this.waveSurfer.pause();
+    }
 
     const formData = new FormData();
     formData.append('file', this.wavBlob, 'recording.wav');
+    formData.append('title', title);
+    formData.append('links', links);
 
     // Show a submitting message
     this.showMessage('Submitting audio...', 'black');
 
-    fetch('https://hooks.zapier.com/hooks/catch/17969384/2dvld0t/', {
-      method: 'POST',
-      body: formData
-    })
-    .then(response => {
+    try {
+      const response = await fetch('https://hooks.zapier.com/hooks/catch/17969384/2dvld0t/', {
+        method: 'POST',
+        body: formData
+      });
+
       if (response.ok) {
-        return response.json();
+        const data = await response.json();
+        console.log('Success:', data);
+        this.showMessage('Audio submitted successfully!', 'green');
+        // Reset UI after a short delay to allow users to see the success message
+        setTimeout(() => {
+          this.discardRecording();
+          this.titleInput.value = '';
+          this.linksInput.value = '';
+        }, 2000);
       } else {
         throw new Error(`Server responded with status ${response.status}`);
       }
-    })
-    .then(data => {
-      console.log('Success:', data);
-      this.showMessage('Audio submitted successfully!', 'green');
-      // Reset UI after a short delay to allow users to see the success message
-      setTimeout(() => {
-        this.discardRecording();
-      }, 2000);
-    })
-    .catch(error => {
+    } catch (error) {
       console.error('Error submitting audio:', error);
       this.showMessage('Error submitting audio. Please try again.', 'red');
-    });
+    }
   }
 
+  // Convert audio Blob to WAV format
   async convertToWav(blob) {
     try {
-      // Create an AudioContext to decode the audio data
       const arrayBuffer = await blob.arrayBuffer();
       if (!this.audioContext) {
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
       }
       const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
 
-      // Encode audio data to WAV format
+      // Encode to WAV
       const wavBuffer = this.encodeWav(audioBuffer);
       return new Blob([wavBuffer], { type: 'audio/wav' });
     } catch (error) {
@@ -277,6 +459,7 @@ class AudioRecorder extends HTMLElement {
     }
   }
 
+  // Encode AudioBuffer to WAV
   encodeWav(audioBuffer) {
     const numChannels = audioBuffer.numberOfChannels;
     const sampleRate = audioBuffer.sampleRate;
@@ -297,45 +480,47 @@ class AudioRecorder extends HTMLElement {
     const buffer = new ArrayBuffer(44 + dataLength);
     const view = new DataView(buffer);
 
-    // RIFF identifier 'RIFF'
+    /* RIFF identifier 'RIFF' */
     this.writeString(view, 0, 'RIFF');
-    // file length minus RIFF identifier length and file description length
+    /* file length minus RIFF identifier length and file description length */
     view.setUint32(4, 36 + dataLength, true);
-    // RIFF type 'WAVE'
+    /* RIFF type 'WAVE' */
     this.writeString(view, 8, 'WAVE');
-    // format chunk identifier 'fmt '
+    /* format chunk identifier 'fmt ' */
     this.writeString(view, 12, 'fmt ');
-    // format chunk length
+    /* format chunk length */
     view.setUint32(16, 16, true);
-    // sample format (raw)
+    /* sample format (raw) */
     view.setUint16(20, format, true);
-    // channel count
+    /* channel count */
     view.setUint16(22, numChannels, true);
-    // sample rate
+    /* sample rate */
     view.setUint32(24, sampleRate, true);
-    // byte rate (sample rate * block align)
+    /* byte rate (sample rate * block align) */
     view.setUint32(28, sampleRate * numChannels * bitsPerSample / 8, true);
-    // block align (channel count * bytes per sample)
+    /* block align (channel count * bytes per sample) */
     view.setUint16(32, numChannels * bitsPerSample / 8, true);
-    // bits per sample
+    /* bits per sample */
     view.setUint16(34, bitsPerSample, true);
-    // data chunk identifier 'data'
+    /* data chunk identifier 'data' */
     this.writeString(view, 36, 'data');
-    // data chunk length
+    /* data chunk length */
     view.setUint32(40, dataLength, true);
 
-    // write the PCM samples
+    // Write PCM samples
     this.floatTo16BitPCM(view, 44, interleaved);
 
     return buffer;
   }
 
+  // Write string to DataView
   writeString(view, offset, string) {
     for (let i = 0; i < string.length; i++) {
       view.setUint8(offset + i, string.charCodeAt(i));
     }
   }
 
+  // Convert float samples to 16-bit PCM
   floatTo16BitPCM(output, offset, input) {
     for (let i = 0; i < input.length; i++, offset += 2) {
       let s = Math.max(-1, Math.min(1, input[i]));
@@ -344,6 +529,7 @@ class AudioRecorder extends HTMLElement {
     }
   }
 
+  // Interleave left and right channels
   interleave(leftChannel, rightChannel) {
     const length = leftChannel.length + rightChannel.length;
     const result = new Float32Array(length);
@@ -357,6 +543,7 @@ class AudioRecorder extends HTMLElement {
     return result;
   }
 
+  // Display messages to the user
   showMessage(message, color) {
     this.messageDiv.textContent = message;
     this.messageDiv.style.color = color;

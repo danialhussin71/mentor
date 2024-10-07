@@ -694,4 +694,4 @@ class AudioRecorder extends HTMLElement {
   }
 }
 
-customElements.define('audio-recorder7000', AudioRecorder);
+customElements.define('audio-recorder9000', AudioRecorder);

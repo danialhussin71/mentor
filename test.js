@@ -7,15 +7,16 @@ class TestSubmitElement extends HTMLElement {
         button.id = "submitButton";
         button.name = "test-submit";
         button.textContent = "Submit";
-
         this.shadowRoot.appendChild(button);
 
-        // Log when the button is added and the event listener is set
-        console.log("Button added to custom element");
+        console.log("Button initialized in custom element");
 
+        // Add event listener for button click
         button.addEventListener('click', () => {
+            console.log("Button clicked, preparing to dispatch startLoadingEvent");
+
+            // Dispatch the custom event
             try {
-                console.log("Button clicked, dispatching startLoadingEvent");
                 this.dispatchEvent(new CustomEvent('startLoadingEvent', {
                     bubbles: true,
                     composed: true,
@@ -29,4 +30,4 @@ class TestSubmitElement extends HTMLElement {
     }
 }
 
-customElements.define('test-submit-element3', TestSubmitElement);
+customElements.define('test-submit-element4', TestSubmitElement);

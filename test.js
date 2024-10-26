@@ -15,14 +15,14 @@ class TestSubmitElement extends HTMLElement {
         button.addEventListener('click', () => {
             console.log("Button clicked, preparing to dispatch startLoadingEvent");
 
-            // Dispatch the custom event
+            // Dispatch the custom event with an action to add a job
             try {
                 this.dispatchEvent(new CustomEvent('startLoadingEvent', {
                     bubbles: true,
                     composed: true,
-                    detail: { message: "startLoading" }
+                    detail: { action: "addJob" }
                 }));
-                console.log("startLoadingEvent dispatched successfully");
+                console.log("startLoadingEvent dispatched successfully with action: addJob");
             } catch (error) {
                 console.error("Error dispatching startLoadingEvent:", error);
             }
